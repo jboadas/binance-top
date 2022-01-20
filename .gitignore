@@ -130,3 +130,6 @@ dmypy.json
 
 # old scripts
 old/
+
+# generated json
+top.json
