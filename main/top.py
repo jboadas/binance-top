@@ -10,8 +10,9 @@ def get_trades_from_binance():
     for t in trades:
         if 'USDT' in t['symbol']:
             trades_filter.append(t)
-    with open('top.json', 'w') as outfile:
+    with open('json/top.json', 'w') as outfile:
         json.dump(trades_filter, outfile)
         print('done')
+
 
 get_trades_from_binance()
