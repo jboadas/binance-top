@@ -19,8 +19,10 @@ def get_trades_from_binance():
         with open('json/top.json', 'w') as outfile:
             json.dump(trades_filter, outfile)
             print('done')
+            return True
     except Exception as e:
         print(e)
+        return False
 
 
 def order_key(e):
@@ -35,12 +37,14 @@ def get_top_price_change():
             top_trades = []
             for t in trades:
                 ask_price = Decimal(t['askPrice'])
-                if ask_price > 0.0:
+                vwap_price = Decimal(t['weightedAvgPrice'])
+                if ask_price > 0.0 and ask_price > vwap_price:
                     top_trades.append(t)
                 if len(top_trades) >= 10:
                     break
+            print("### current top 10 - 24h change")
             for t in top_trades:
-                print(t['symbol'], t['priceChangePercent'], t['askPrice'], t['bidPrice'])
+                print(t['symbol'], t['priceChangePercent'])
             return top_trades
     except Exception as e:
         print(e)
@@ -68,8 +72,6 @@ def sell_selected(selected_sells):
                         trade.get('symbol')))
                 CON.commit()
 
-        print(sell_prices)
-
 
 def buy_selected(selected_buys):
     cur = CON.cursor()
@@ -96,26 +98,26 @@ def choose_sell_buy(top_change):
         """)
     symbols = cur.fetchall()
     symbol_list = [i[0] for i in symbols]
-    print("current buys", symbol_list)
+    print("### current buys in database")
+    for s in symbol_list:
+        print(s)
     tc_symbol_list = []
     for tc in top_change:
         tc_symbol_list.append(tc['symbol'])
-    print("current top change", tc_symbol_list)
-
-    print("symbol_list", symbol_list)
-    print("tc_symbol_list", tc_symbol_list)
     will_sell = list(set(symbol_list) - set(tc_symbol_list))
     will_buy_symbols = list(set(tc_symbol_list) - set(symbol_list))
-    print("will_buy_symbols", will_buy_symbols)
-
     will_buy = []
     for tc in top_change:
+        if (len(symbol_list) - len(will_sell)) + len(will_buy) >= 5:
+            break
         if tc.get('symbol') in will_buy_symbols:
             will_buy.append(tc)
-        if len(will_sell) + len(will_buy) >= 5:
-            break
-    print("will sell:", will_sell)
-    print("will buy:", will_buy_symbols)
+    print("### selling:")
+    for ws in will_sell:
+        print(ws)
+    print("### buying:")
+    for wb in will_buy:
+        print(wb.get('symbol'))
     sell_selected(will_sell)
     buy_selected(will_buy)
 
@@ -129,7 +131,7 @@ def clean_database():
     CON.commit()
 
 
-# get_trades_from_binance()
-top_price_change = get_top_price_change()
-choose_sell_buy(top_price_change)
+if get_trades_from_binance():
+    top_price_change = get_top_price_change()
+    choose_sell_buy(top_price_change)
 # clean_database()
