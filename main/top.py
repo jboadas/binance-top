@@ -105,6 +105,18 @@ def choose_sell_buy(top_change):
     for tc in top_change:
         tc_symbol_list.append(tc['symbol'])
     will_sell = list(set(symbol_list) - set(tc_symbol_list))
+
+    # modificar will_sell para agregar los que esten por debajo del VWAP
+    not_selling = list(set(symbol_list) - set(will_sell))
+    with open('json/top.json') as trades_file:
+        trades = json.load(trades_file)
+        for t in trades:
+            curr_symbol = t['symbol']
+            if curr_symbol in not_selling:
+                vwap_price = Decimal(t['weightedAvgPrice'])
+                askPrice = Decimal(t['askPrice'])
+                if vwap_price < askPrice:
+                    will_sell.append(curr_symbol)
     will_buy_symbols = list(set(tc_symbol_list) - set(symbol_list))
     will_buy = []
     for tc in top_change:
