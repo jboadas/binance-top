@@ -7,7 +7,7 @@ import sys
 import logging
 
 logging.basicConfig(
-    filename='top.log',
+    filename='logs/top.log',
     level=logging.DEBUG,
     format='%(asctime)s %(levelname)s %(module)s - %(funcName)s: %(message)s',
     datefmt='%d-%m-%Y %H:%M:%S',)
@@ -163,7 +163,7 @@ def main():
 
 
 if __name__ == '__main__':
-    if '--clean' in sys.argv:
+    if '--clean' or '--clear' in sys.argv:
         logging.info("cleaning database")
         clean_database()
     else:
