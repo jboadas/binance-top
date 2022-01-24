@@ -163,7 +163,7 @@ def main():
 
 
 if __name__ == '__main__':
-    if '--clean' or '--clear' in sys.argv:
+    if '--clean' in sys.argv:
         logging.info("cleaning database")
         clean_database()
     else:
