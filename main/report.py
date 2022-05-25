@@ -10,7 +10,7 @@ def collect_sells(invested_amount):
     cur = con.cursor()
     cur.execute(
         """
-            SELECT symbol, buy, sell, weight, date
+            SELECT symbol, buy, sell, weight, date, position
             FROM gainers
             WHERE sell != 0.0
             ORDER BY date;
@@ -25,6 +25,7 @@ def collect_sells(invested_amount):
         weight = Decimal(t[3])
         curr_date = datetime.strptime(t[4], '%Y-%m-%d %H:%M:%S.%f')
         curr_date_str = curr_date.strftime('%d-%m-%Y %H:%M')
+        position = int(t[5])
         if print_date != curr_date_str:
             print_date = curr_date_str
             print(" " * 80)
@@ -33,11 +34,14 @@ def collect_sells(invested_amount):
             print("%" * 80)
         share_amount_buyed = invested_amount / share_price_buy
         # share_amount_selled = invested_amount / share_price_sell
-        curr_earnings = (share_amount_buyed * share_price_sell) - invested_amount
-        # curr_earnings = (share_amount_selled - share_amount_buyed) * share_price_sell
+        curr_earnings = (
+            share_amount_buyed * share_price_sell) - invested_amount
+        # curr_earnings = (
+        # share_amount_selled - share_amount_buyed) * share_price_sell
         print("-" * 80)
         print("symbol:", symbol)
         print('ganancias:', curr_earnings)
+        print('posision', position)
         print('precio de compra:', share_price_buy)
         print('precio de venta:', share_price_sell)
         print('weight', weight)

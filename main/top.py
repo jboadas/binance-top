@@ -20,8 +20,11 @@ def get_trades_from_binance():
     try:
         trades = requests.get(API_URL).json()
         trades_filter = []
+        position = 0
         for t in trades:
+            position += 1
             if 'USDT' in t['symbol']:
+                t['position'] = position
                 trades_filter.append(t)
         with open('json/top.json', 'w') as outfile:
             json.dump(trades_filter, outfile)
@@ -46,6 +49,7 @@ def get_top_price_change():
                 ask_price = Decimal(t['askPrice'])
                 vwap_price = Decimal(t['weightedAvgPrice'])
                 if ask_price > 0.0 and ask_price > vwap_price:
+                    t['position'] = len(top_trades) + 1
                     top_trades.append(t)
                 if len(top_trades) >= 10:
                     break
@@ -56,6 +60,7 @@ def get_top_price_change():
                 logging.info("24hr change: %s", str(t['priceChangePercent']))
                 logging.info("askPrice: %s", str(t['askPrice']))
                 logging.info("vwap: %s", str(t['weightedAvgPrice']))
+                logging.info("position: %s", str(t['position']))
                 logging.info('-' * 20)
             return top_trades
     except Exception as e:
@@ -91,14 +96,15 @@ def buy_selected(selected_buys):
         cur.execute(
             """
                 INSERT INTO gainers
-                VALUES ('%s','%s','%s','%s','%s','%s')
+                VALUES ('%s','%s','%s','%s','%s','%s','%s')
             """ % (
                 i.get('symbol'),
                 i.get('priceChangePercent'),
                 i.get('askPrice'),
                 0,
                 i.get('weightedAvgPrice'),
-                datetime.datetime.now()))
+                datetime.datetime.now(),
+                i.get('position')))
     CON.commit()
 
 
@@ -106,13 +112,15 @@ def choose_sell_buy(top_change):
     cur = CON.cursor()
     cur.execute(
         """
-            SELECT symbol FROM gainers WHERE sell == 0.0;
+            SELECT symbol, buy FROM gainers WHERE sell == 0.0;
         """)
     symbols = cur.fetchall()
     symbol_list = [i[0] for i in symbols]
     logging.info("### current buys in database")
-    for s in symbol_list:
-        logging.info(s)
+    logging.info("symbol | buy price")
+    for ix in symbols:
+        logging.info(
+            "{symbol} | {buy_price}".format(symbol=ix[0], buy_price=ix[1]))
     tc_symbol_list = []
     for tc in top_change:
         tc_symbol_list.append(tc['symbol'])
@@ -156,6 +164,28 @@ def clean_database():
     logging.info('clean database done')
 
 
+def recreate_database():
+    cur = CON.cursor()
+    cur.execute(
+        """
+            DROP TABLE IF EXISTS gainers;
+        """)
+    cur.execute(
+        """
+            CREATE TABLE gainers (
+               symbol TEXT NOT NULL,
+               change REAL NOT NULL,
+               buy REAL NOT NULL,
+               sell REAL NOT NULL DEFAULT 0,
+               weight REAL NOT NULL DEFAULT 0,
+               date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+               position INTEGER NOT NULL DEFAULT 0
+            );
+        """)
+    CON.commit()
+    logging.info('drop/create database gainers done')
+
+
 def main():
     if get_trades_from_binance():
         top_price_change = get_top_price_change()
@@ -166,6 +196,9 @@ if __name__ == '__main__':
     if '--clean' in sys.argv:
         logging.info("cleaning database")
         clean_database()
+    if '--zap' in sys.argv:
+        logging.info("recreating database")
+        recreate_database()
     else:
         logging.info("#" * 80)
         logging.info("call main")
