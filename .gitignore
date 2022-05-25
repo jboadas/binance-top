@@ -5,10 +5,12 @@ __pycache__/
 
 # C extensions
 *.so
+top.db
 
 # Distribution / packaging
 .Python
 build/
+reports/
 develop-eggs/
 dist/
 downloads/
